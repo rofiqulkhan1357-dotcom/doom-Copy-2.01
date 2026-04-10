@@ -7,6 +7,7 @@ export class SerialService {
   private port: SerialPort | null = null;
   private writer: WritableStreamDefaultWriter<Uint8Array> | null = null;
   private encoder = new TextEncoder();
+  private lastSentAngles: Map<number, number> = new Map();
 
   async connect(): Promise<boolean> {
     if (!('serial' in navigator)) {
@@ -25,6 +26,7 @@ export class SerialService {
   }
 
   async disconnect() {
+    this.lastSentAngles.clear();
     if (this.writer) {
       await this.writer.releaseLock();
       this.writer = null;
@@ -38,11 +40,15 @@ export class SerialService {
   async sendServoAngle(id: number, angle: number) {
     if (!this.writer) return;
     
-    const message = `S${id}:${Math.round(angle)}\n`;
+    const roundedAngle = Math.round(angle);
+    if (this.lastSentAngles.get(id) === roundedAngle) return;
+    
+    const message = `S${id}:${roundedAngle}\n`;
     const data = this.encoder.encode(message);
     
     try {
       await this.writer.write(data);
+      this.lastSentAngles.set(id, roundedAngle);
     } catch (error) {
       console.error('Failed to write to serial port:', error);
     }

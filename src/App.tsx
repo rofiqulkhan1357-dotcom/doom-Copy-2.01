@@ -35,6 +35,8 @@ export default function App() {
   const [isPlaying, setIsPlaying] = React.useState(false);
   const [activeRoutineId, setActiveRoutineId] = React.useState<string | null>(null);
   const [isSerialConnected, setIsSerialConnected] = React.useState(false);
+  const [isRecording, setIsRecording] = React.useState(false);
+  const [recordedSteps, setRecordedSteps] = React.useState<SequenceStep[]>([]);
 
   // Load custom routines from localStorage
   React.useEffect(() => {
@@ -89,17 +91,41 @@ export default function App() {
     setIsPlaying(true);
     setActiveRoutineId(routine.id);
 
+    // Get initial angles
+    let currentAngles = servos.map(s => s.angle);
+
     for (const step of routine.steps) {
-      // In a real app, we'd interpolate angles over the duration
-      // For this demo, we'll just jump to the target angles
-      setServos(prev => prev.map((s, i) => {
-        const newAngle = step.angles[i];
-        if (isSerialConnected) {
-          serialService.sendServoAngle(s.id, newAngle);
-        }
-        return { ...s, angle: newAngle };
-      }));
-      await new Promise(resolve => setTimeout(resolve, step.duration));
+      const startAngles = [...currentAngles];
+      const targetAngles = step.angles;
+      const duration = Math.max(step.duration, 1); // Prevent division by zero
+      const startTime = performance.now();
+
+      // Interpolation loop
+      while (true) {
+        const now = performance.now();
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+
+        // Calculate interpolated angles
+        const nextAngles = startAngles.map((start, i) => {
+          const target = targetAngles[i];
+          return start + (target - start) * progress;
+        });
+
+        // Update state and hardware
+        setServos(prev => prev.map((s, i) => {
+          const newAngle = nextAngles[i];
+          if (isSerialConnected) {
+            serialService.sendServoAngle(s.id, newAngle);
+          }
+          return { ...s, angle: newAngle };
+        }));
+
+        currentAngles = nextAngles;
+
+        if (progress >= 1) break;
+        await new Promise(resolve => requestAnimationFrame(resolve));
+      }
     }
 
     setIsPlaying(false);
@@ -109,6 +135,43 @@ export default function App() {
   const deleteRoutine = (id: string) => {
     saveRoutines(customRoutines.filter(r => r.id !== id));
   };
+
+  const toggleRecording = () => {
+    if (isRecording) {
+      // Stop recording and save
+      if (recordedSteps.length > 0) {
+        const newRoutine: Routine = {
+          id: Math.random().toString(36).substr(2, 9),
+          name: `Recording ${new Date().toLocaleTimeString()}`,
+          description: `Live capture with ${recordedSteps.length} steps`,
+          steps: [...recordedSteps],
+        };
+        saveRoutines([...customRoutines, newRoutine]);
+      }
+      setIsRecording(false);
+      setRecordedSteps([]);
+    } else {
+      // Start recording
+      setIsRecording(true);
+      setRecordedSteps([]);
+    }
+  };
+
+  // Recording loop
+  React.useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isRecording) {
+      interval = setInterval(() => {
+        const newStep: SequenceStep = {
+          id: Math.random().toString(36).substr(2, 9),
+          angles: servos.map(s => s.angle),
+          duration: 100, // 10Hz recording
+        };
+        setRecordedSteps(prev => [...prev, newStep]);
+      }, 100);
+    }
+    return () => clearInterval(interval);
+  }, [isRecording, servos]);
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans selection:bg-white selection:text-black">
@@ -143,6 +206,16 @@ export default function App() {
                ))}
              </select>
           </div>
+          <div className="h-8 w-px bg-zinc-800" />
+          <Button 
+            variant={isRecording ? "destructive" : "outline"}
+            size="sm"
+            onClick={toggleRecording}
+            className={`gap-2 text-[10px] uppercase font-bold ${isRecording ? 'animate-pulse' : 'border-zinc-700 text-zinc-400'}`}
+          >
+            <div className={`w-2 h-2 rounded-full ${isRecording ? 'bg-white' : 'bg-red-500'}`} />
+            {isRecording ? "Stop Recording" : "Live Record"}
+          </Button>
           <div className="h-8 w-px bg-zinc-800" />
           <Button 
             variant={isSerialConnected ? "default" : "outline"}

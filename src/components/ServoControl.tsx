@@ -27,7 +27,18 @@ export const ServoControl: React.FC<ServoControlProps> = ({ servo, onChange }) =
           <h3 className="text-sm font-medium text-zinc-200">{servo.name}</h3>
         </div>
         <div className="flex items-center gap-2">
-           <span className="text-lg font-mono font-bold text-white tabular-nums">{servo.angle.toFixed(0)}°</span>
+           <input 
+            type="number"
+            value={Math.round(servo.angle)}
+            onChange={(e) => {
+              const val = Number(e.target.value);
+              if (!isNaN(val)) {
+                onChange(servo.id, { angle: Math.max(servo.minAngle, Math.min(servo.maxAngle, val)) });
+              }
+            }}
+            className="w-16 bg-transparent text-lg font-mono font-bold text-white tabular-nums text-right border-none focus:ring-0 p-0"
+           />
+           <span className="text-lg font-mono font-bold text-zinc-500">°</span>
            <button 
             onClick={() => setShowSettings(!showSettings)}
             className="p-1.5 rounded-md hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300 transition-colors"
