@@ -1,5 +1,5 @@
 {
   "name": "Remix: RoboControl Studio",
-  "description": "A professional-grade robotic arm controller with 6-axis independent servo control, sequence programming, real-time visualization, and Web Serial COM port hardware integration.",
+  "description": "A professional-grade robotic arm controller with 6-axis independent servo control, sequence programming with drag-and-drop reordering, real-time visualization, and Web Serial COM port hardware integration.",
   "requestFramePermissions": []
 }

@@ -4,11 +4,12 @@
  */
 
 import React from "react";
-import { SequenceStep, Routine, ServoState } from "../types";
-import { Button } from "./ui/button";
-import { ScrollArea } from "./ui/scroll-area";
-import { Play, Save, Plus, Trash2, Clock, MoveHorizontal } from "lucide-react";
-import { Badge } from "./ui/badge";
+import { SequenceStep, Routine } from "../types";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Play, Save, Plus, Trash2, Clock, MoveHorizontal, GripVertical } from "lucide-react";
+import { Reorder, useDragControls } from "motion/react";
+import { Badge } from "@/components/ui/badge";
 
 interface SequenceEditorProps {
   currentAngles: number[];
@@ -88,52 +89,31 @@ export const SequenceEditor: React.FC<SequenceEditorProps> = ({
       </div>
 
       <ScrollArea className="flex-1 p-4">
-        <div className="space-y-3">
+        <Reorder.Group 
+          axis="y" 
+          values={steps} 
+          onReorder={setSteps}
+          className="space-y-3"
+        >
           {steps.map((step, index) => (
-            <div key={step.id} className="group flex items-center gap-4 p-3 bg-zinc-950 border border-zinc-800 rounded-lg hover:border-zinc-700 transition-all">
-              <div className="flex flex-col items-center justify-center w-8 h-8 rounded bg-zinc-900 text-[10px] font-mono text-zinc-500">
-                {String(index + 1).padStart(2, '0')}
-              </div>
-              
-              <div className="flex-1 grid grid-cols-6 gap-1">
-                {step.angles.map((angle, i) => (
-                  <div key={i} className="flex flex-col items-center">
-                    <span className="text-[8px] text-zinc-600 uppercase font-mono">S{i+1}</span>
-                    <span className="text-[10px] font-mono text-zinc-300">{angle}°</span>
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1.5 bg-zinc-900 px-2 py-1 rounded border border-zinc-800">
-                  <Clock className="w-3 h-3 text-zinc-500" />
-                  <input 
-                    type="number"
-                    value={step.duration}
-                    onChange={(e) => updateStepDuration(step.id, Number(e.target.value))}
-                    className="w-12 bg-transparent border-none text-[10px] font-mono text-zinc-300 focus:outline-none p-0"
-                  />
-                  <span className="text-[8px] text-zinc-600 uppercase font-mono">ms</span>
-                </div>
-                <button 
-                  onClick={() => removeStep(step.id)}
-                  className="p-1.5 text-zinc-600 hover:text-red-400 hover:bg-red-400/10 rounded transition-all"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
+            <StepItem 
+              key={step.id} 
+              step={step} 
+              index={index} 
+              onRemove={removeStep} 
+              onUpdateDuration={updateStepDuration} 
+            />
           ))}
+        </Reorder.Group>
 
-          {steps.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-12 text-zinc-600 space-y-2">
-              <div className="w-12 h-12 rounded-full border-2 border-dashed border-zinc-800 flex items-center justify-center">
-                <Plus className="w-6 h-6 opacity-20" />
-              </div>
-              <p className="text-xs uppercase tracking-widest font-mono">No steps recorded</p>
+        {steps.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-12 text-zinc-600 space-y-2">
+            <div className="w-12 h-12 rounded-full border-2 border-dashed border-zinc-800 flex items-center justify-center">
+              <Plus className="w-6 h-6 opacity-20" />
             </div>
-          )}
-        </div>
+            <p className="text-xs uppercase tracking-widest font-mono">No steps recorded</p>
+          </div>
+        )}
       </ScrollArea>
 
       <div className="p-4 bg-zinc-950/50 border-t border-zinc-800">
@@ -145,5 +125,64 @@ export const SequenceEditor: React.FC<SequenceEditorProps> = ({
         </Button>
       </div>
     </div>
+  );
+};
+
+interface StepItemProps {
+  step: SequenceStep;
+  index: number;
+  onRemove: (id: string) => void;
+  onUpdateDuration: (id: string, duration: number) => void;
+}
+
+const StepItem: React.FC<StepItemProps> = ({ step, index, onRemove, onUpdateDuration }) => {
+  const controls = useDragControls();
+
+  return (
+    <Reorder.Item 
+      value={step}
+      dragListener={false}
+      dragControls={controls}
+      className="group flex items-center gap-4 p-3 bg-zinc-950 border border-zinc-800 rounded-lg hover:border-zinc-700 transition-all active:scale-[1.02] active:shadow-xl active:z-50"
+    >
+      <div 
+        onPointerDown={(e) => controls.start(e)}
+        className="cursor-grab active:cursor-grabbing p-1 -ml-1 text-zinc-700 hover:text-zinc-400 transition-colors"
+      >
+        <GripVertical className="w-4 h-4" />
+      </div>
+
+      <div className="flex flex-col items-center justify-center w-8 h-8 rounded bg-zinc-900 text-[10px] font-mono text-zinc-500">
+        {String(index + 1).padStart(2, '0')}
+      </div>
+      
+      <div className="flex-1 grid grid-cols-6 gap-1">
+        {step.angles.map((angle, i) => (
+          <div key={i} className="flex flex-col items-center">
+            <span className="text-[8px] text-zinc-600 uppercase font-mono">S{i+1}</span>
+            <span className="text-[10px] font-mono text-zinc-300">{angle}°</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 bg-zinc-900 px-2 py-1 rounded border border-zinc-800">
+          <Clock className="w-3 h-3 text-zinc-500" />
+          <input 
+            type="number"
+            value={step.duration}
+            onChange={(e) => onUpdateDuration(step.id, Number(e.target.value))}
+            className="w-12 bg-transparent border-none text-[10px] font-mono text-zinc-300 focus:outline-none p-0"
+          />
+          <span className="text-[8px] text-zinc-600 uppercase font-mono">ms</span>
+        </div>
+        <button 
+          onClick={() => onRemove(step.id)}
+          className="p-1.5 text-zinc-600 hover:text-red-400 hover:bg-red-400/10 rounded transition-all"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      </div>
+    </Reorder.Item>
   );
 };

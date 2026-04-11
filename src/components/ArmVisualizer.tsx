@@ -9,9 +9,10 @@ import { ServoState } from "../types";
 
 interface ArmVisualizerProps {
   servos: ServoState[];
+  isRecording?: boolean;
 }
 
-export const ArmVisualizer: React.FC<ArmVisualizerProps> = ({ servos }) => {
+export const ArmVisualizer: React.FC<ArmVisualizerProps> = ({ servos, isRecording }) => {
   // Simple 2D side-view SVG visualization
   // Base -> Shoulder -> Elbow -> Wrist -> Gripper
   
@@ -47,7 +48,15 @@ export const ArmVisualizer: React.FC<ArmVisualizerProps> = ({ servos }) => {
   return (
     <div className="relative w-full h-[400px] bg-zinc-950 border border-zinc-800 rounded-lg overflow-hidden flex items-center justify-center">
       <div className="absolute top-4 left-4 flex flex-col gap-1">
-        <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider">Real-time Telemetry</span>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider">Real-time Telemetry</span>
+          {isRecording && (
+            <div className="flex items-center gap-1.5 px-1.5 py-0.5 bg-red-500/10 border border-red-500/20 rounded">
+              <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+              <span className="text-[9px] font-bold text-red-500 uppercase tracking-tighter">REC</span>
+            </div>
+          )}
+        </div>
         <div className="flex gap-4">
           {servos.map(s => (
             <div key={s.id} className="flex flex-col">

@@ -5,9 +5,9 @@
 
 import React from "react";
 import { ServoState } from "../types";
-import { Slider } from "./ui/slider";
-import { Label } from "./ui/label";
-import { Input } from "./ui/input";
+import { Slider } from "@/components/ui/slider";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Settings2, RotateCw } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
